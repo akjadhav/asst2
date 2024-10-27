@@ -1,5 +1,6 @@
 #include "tasksys.h"
 
+#include <memory>  // Added for std::shared_ptr
 
 IRunnable::~IRunnable() {}
 
@@ -126,6 +127,9 @@ const char* TaskSystemParallelThreadPoolSleeping::name() {
     return "Parallel + Thread Pool + Sleep";
 }
 
+struct NoOpDeleter {
+    void operator()(void const *) const {}
+};
 
 TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(int num_threads)
     : ITaskSystem(num_threads),
@@ -149,9 +153,7 @@ TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
     }
 }
 
-
 void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_total_tasks) {
-
 
     //
     // TODO: CS149 students will modify the implementation of this
@@ -168,7 +170,6 @@ void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_tota
 TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                                     const std::vector<TaskID>& deps) {
 
-
     //
     // TODO: CS149 students will implement this method in Part B.
     //
@@ -176,7 +177,7 @@ TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnabl
 
     TaskID task_id = next_task_id++;
     TaskGroup& task_group = task_groups[task_id];
-    task_group.runnable = runnable;
+    task_group.runnable = std::shared_ptr<IRunnable>(runnable, NoOpDeleter());  // Changed to use shared_ptr with NoOpDeleter
     task_group.num_total_tasks = num_total_tasks;
     task_group.completed_tasks = 0;
     task_group.dependencies = deps;
@@ -185,7 +186,7 @@ TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnabl
     total_tasks_submitted += num_total_tasks;
 
     if (deps.empty()) {
-        // No dependencies; add tasks to ready queue
+        // No dependencies; add tasks to ready_queue
         for (int i = 0; i < num_total_tasks; ++i) {
             ready_queue.emplace(task_id, i);
         }
@@ -233,13 +234,23 @@ void TaskSystemParallelThreadPoolSleeping::workerThread(int i) {
 
         TaskID task_id = std::get<0>(task);
         int task_index = std::get<1>(task);
-        TaskGroup& task_group = task_groups[task_id];
 
-        // Execute the task outside the lock
-        task_group.runnable->runTask(task_index, task_group.num_total_tasks);
+        std::shared_ptr<IRunnable> runnable;
+        int num_total_tasks;
 
         {
             std::unique_lock<std::mutex> lock(mutex);
+            TaskGroup& task_group = task_groups[task_id];
+            runnable = task_group.runnable;    // Capture shared_ptr to runnable
+            num_total_tasks = task_group.num_total_tasks;
+        }
+
+        // Execute the task outside the lock
+        runnable->runTask(task_index, num_total_tasks);
+
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            TaskGroup& task_group = task_groups[task_id];
             task_group.completed_tasks++;
             total_tasks_completed++;
 
