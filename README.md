@@ -1,5 +1,5 @@
 
-# Assignment 2: Building A Task Execution Library from the Ground Up #
+# project 2: Building A Task Execution Library from the Ground Up #
 
 **Due Thurs Oct 24, 11:59pm**
 
@@ -7,13 +7,13 @@
 
 ## Overview ##
 
-Everyone likes to complete tasks quickly, and in this assignment we are asking you to do just that! You will implement a C++ library that executes tasks provided by an application as efficiently as possible on a multi-core CPU.
+Everyone likes to complete tasks quickly, and in this project we are asking you to do just that! You will implement a C++ library that executes tasks provided by an application as efficiently as possible on a multi-core CPU.
 
-In the first part of the assignment, you will implement a version of the task execution library that supports bulk (data-parallel) launch of many instances of the same task. This functionality is similar to the [ISPC task launch behavior](http://ispc.github.io/ispc.html#task-parallelism-launch-and-sync-statements) you used to parallelize code across cores in Assignment 1.
+In the first part of the project, you will implement a version of the task execution library that supports bulk (data-parallel) launch of many instances of the same task. This functionality is similar to the [ISPC task launch behavior](http://ispc.github.io/ispc.html#task-parallelism-launch-and-sync-statements) you used to parallelize code across cores in project 1.
 
-In the second part of the assignment, you will extend your task runtime system to execute more complex _task graphs_, where the execution of tasks may depend on the results produced by other tasks. These dependencies constrain which tasks can be safely run in parallel by your task scheduling system.  Scheduling execution of data-parallel task graphs on a parallel machine is a feature of many popular parallel runtime systems ranging from the popular [Thread Building Blocks](https://github.com/intel/tbb) library, to [Apache Spark](https://spark.apache.org/), to modern deep learning frameworks such as [PyTorch](https://pytorch.org/) and [TensorFlow](https://www.tensorflow.org/).
+In the second part of the project, you will extend your task runtime system to execute more complex _task graphs_, where the execution of tasks may depend on the results produced by other tasks. These dependencies constrain which tasks can be safely run in parallel by your task scheduling system.  Scheduling execution of data-parallel task graphs on a parallel machine is a feature of many popular parallel runtime systems ranging from the popular [Thread Building Blocks](https://github.com/intel/tbb) library, to [Apache Spark](https://spark.apache.org/), to modern deep learning frameworks such as [PyTorch](https://pytorch.org/) and [TensorFlow](https://www.tensorflow.org/).
 
-This assignment will require you to:
+This project will require you to:
 
 * Manage task execution using a thread pool
 * Orchestrate worker thread execution using synchronization primitives such as mutexes and condition variables
@@ -23,15 +23,15 @@ This assignment will require you to:
 ### Wait, I Think I've Done This Before? ###
 
 You may have already created thread pools and task execution libraries in classes such as CS107 or CS111.
-However, the current assignment is a unique opportunity to better understand these systems.
+However, the current project is a unique opportunity to better understand these systems.
 You will implement multiple task execution libraries, some without thread pools and some with different types of thread pools.
 By implementing multiple task scheduling strategies and comparing their performance on difference workloads, you will better understand the implications of key design choices when creating a parallel system.
 
 ## Environment Setup ##
 
-**We will be grading this assignment on an Amazon AWS `c7g.4xlarge` instance - we provide instructions for setting up your VM [here](https://github.com/stanford-cs149/asst2/blob/master/cloud_readme.md). Please ensure your code works on this VM as we will be using this for performance testing and grading.**
+**We will be grading this project on an Amazon AWS `c7g.4xlarge` instance - we provide instructions for setting up your VM [here](https://github.com/stanford-cs149/asst2/blob/master/cloud_readme.md). Please ensure your code works on this VM as we will be using this for performance testing and grading.**
 
-The assignment starter code is available on [Github](https://github.com/stanford-cs149/asst2). Please download the Assignment 2 starter code at:
+The project starter code is available on [Github](https://github.com/stanford-cs149/asst2). Please download the project 2 starter code at:
 
     https://github.com/stanford-cs149/asst2/archive/refs/heads/master.zip
 
@@ -39,7 +39,7 @@ The assignment starter code is available on [Github](https://github.com/stanford
 
 ## Part A: Synchronous Bulk Task Launch
 
-In Assignment 1, you used ISPC's task launch primitive to launch N instances of an ISPC task (`launch[N] myISPCFunction()`).  In the first part of this assignment, you will implement similar functionality in your task execution library.
+In project 1, you used ISPC's task launch primitive to launch N instances of an ISPC task (`launch[N] myISPCFunction()`).  In the first part of this project, you will implement similar functionality in your task execution library.
 
 To get started, get acquainted with the definition of `ITaskSystem` in `itasksys.h`. This [abstract class](https://www.tutorialspoint.com/cplusplus/cpp_interfaces.htm) defines the interface to your task execution system.  The interface features a method `run()`, which has the following signature:
 
@@ -141,7 +141,7 @@ We'll be grading your solution on AWS with `runtasks_ref_linux_arm` version of t
 
 ### What You Need To Do ###
 
-Your job is to implement a task execution engine that efficiently uses your multi-core CPU. You will be graded on both the correctness of your implementation (it must run all the tasks correctly) as well as on its performance.  This should be a fun coding challenge, but it is a non-trivial piece of work. To help you stay on the right track, to complete Part A of the assignment, we will have you implement multiple versions of the task system, slowly increasing in complexity and performance of your implementation.  Your three implementations will be in the classes defined in `tasksys.cpp/.h`.
+Your job is to implement a task execution engine that efficiently uses your multi-core CPU. You will be graded on both the correctness of your implementation (it must run all the tasks correctly) as well as on its performance.  This should be a fun coding challenge, but it is a non-trivial piece of work. To help you stay on the right track, to complete Part A of the project, we will have you implement multiple versions of the task system, slowly increasing in complexity and performance of your implementation.  Your three implementations will be in the classes defined in `tasksys.cpp/.h`.
 
 * `TaskSystemParallelSpawn`
 * `TaskSystemParallelThreadPoolSpinning`
@@ -157,13 +157,13 @@ We also expect you to create at least one test, which can test either correctnes
 
 __In this step please implement the class `TaskSystemParallelSpawn`.__
 
-The starter code provides you a working serial implementation of the task system in `TaskSystemSerial`.  In this step of the assignment you will extend the starter code to execute a bulk task launch in parallel.
+The starter code provides you a working serial implementation of the task system in `TaskSystemSerial`.  In this step of the project you will extend the starter code to execute a bulk task launch in parallel.
 
 * You will need to create additional threads of control to perform the work of a bulk task launch.  Notice that `TaskSystem`'s constructor is provided a parameter `num_threads` which is the ****maximum number of worker threads**** your implementation may use to run tasks.
 
 * In the spirit of "do the simplest thing first", we recommend that you spawn worker threads at the beginning of `run()` and join these threads from the main thread before `run()` returns.  This will be a correct implementation, but it will incur significant overhead from frequent thread creation.
 
-* How will you assign tasks to your worker threads?  Should you consider static or dynamic assignment of tasks to threads?
+* How will you assign tasks to your worker threads?  Should you consider static or dynamic project of tasks to threads?
 
 * Are there shared variables (internal state of your task execution system) that you need to protect from simultaneous access from multiple threads?  You may wish to review our [C++ synchronization tutorial](tutorial/README.md) for more information on the synchronization primitives in the C++ standard library.
 
@@ -183,17 +183,17 @@ __In this step please implement the class `TaskSystemParallelThreadPoolSleeping`
 
 One of the drawbacks of the step 2 implementation is that threads utilize a CPU core's execution resources as they "spin" waiting for something to do.  For example, worker threads might loop waiting for new tasks to arrive.  As another example, the main thread might loop waiting for the worker threads to complete all tasks so it can return from a call to `run()`.  This can hurt performance since CPU resources are used to run these threads even though the threads are not doing useful work.
 
-In this part of the assignment, we want you to improve the efficiency of your task system by putting threads to sleep until the condition they are waiting for is met.
+In this part of the project, we want you to improve the efficiency of your task system by putting threads to sleep until the condition they are waiting for is met.
 
 * Your implementation may choose to use condition variables to implement this behavior.  Condition variables are a synchronization primitive that enables threads to sleep (and occupy no CPU processing resources) while they are waiting for a condition to exist. Other threads "signal" waiting threads to wake up to see if the condition they were waiting for has been met. For example, your worker threads could be put to sleep if there is no work to be done (so they don't take CPU resources away from threads trying to do useful work).  As another example, your main application thread that calls `run()` might want to sleep while it waits for all the tasks in a bulk task launch to be completed by the worker threads. (Otherwise a spinning main thread would take CPU resources away from the worker threads!)  Please see our [C++ synchronization tutorial](tutorial/README.md) for more information on condition variables in C++.
 
-* Your implementation in this part of the assignment may have tricky race conditions to think about.  You'll need to consider many possible interleavings of thread behavior.
+* Your implementation in this part of the project may have tricky race conditions to think about.  You'll need to consider many possible interleavings of thread behavior.
 
-* You might want to consider writing additional test cases to exercise your system.  __The assignment starter code includes the workloads that the grading script will use to grade the performance of your code, but we will also test the correctness of your implementation using a wider set of workloads that we are not providing in the starter code!__
+* You might want to consider writing additional test cases to exercise your system.  __The project starter code includes the workloads that the grading script will use to grade the performance of your code, but we will also test the correctness of your implementation using a wider set of workloads that we are not providing in the starter code!__
 
 ## Part B: Supporting Execution of Task Graphs
 
-In part B of the assignment you will extend your part A task system implementation to support the asynchronous launch of tasks that may have dependencies on previous tasks.  These inter-task dependencies create scheduling constraints that your task execution library must respect.
+In part B of the project you will extend your part A task system implementation to support the asynchronous launch of tasks that may have dependencies on previous tasks.  These inter-task dependencies create scheduling constraints that your task execution library must respect.
 
 The `ITaskSystem` interface has an additional method:
 
@@ -278,7 +278,7 @@ You must extend your task system implementation that uses a thread pool (and sle
 As with Part A, we offer you the following tips to get started:
 * It may be helpful to think about the behavior of `runAsyncWithDeps()` as pushing a record corresponding to the bulk task launch, or perhaps records corresponding to each of the tasks in the bulk task launch onto a "work queue".  Once the record to work to do is in the queue, `runAsyncWithDeps()` can return to the caller.
 
-* The trick in this part of the assignment is performing the appropriate bookkeeping to track dependencies. What must be done when all the tasks in a bulk task launch complete? (This is the point when new tasks may become available to run.)
+* The trick in this part of the project is performing the appropriate bookkeeping to track dependencies. What must be done when all the tasks in a bulk task launch complete? (This is the point when new tasks may become available to run.)
 
 * It can be helpful to have two data structures in your implementation: (1) a structure representing tasks that have been added to the system via a call to `runAsyncWithDeps()`, but are not yet ready to execute because they depend on tasks that are still running (these tasks are "waiting" for others to finish) and (2) a "ready queue" of tasks that are not waiting on any prior tasks to finish and can safely be run as soon as a worker thread is available to process them.
 
@@ -292,7 +292,7 @@ __Implement your part B implementation in the `part_b/` sub-directory to compare
 
 ## Grading ##
 
-Points in this assignment will be assigned as follows,
+Points in this project will be assigned as follows,
 
 **Part A (50 points)**
 - 5 points for correctness of `TaskSystemParallelSpawn::run()` + 5 points for its performance.  (10 points total)
@@ -315,24 +315,24 @@ Please submit your work using [Gradescope](https://www.gradescope.com/).  Your s
  * part_a/tasksys.h
  * part_b/tasksys.cpp
  * part_b/tasksys.h
- * Your write-up PDF (submit to gradescope write-up assignment)
+ * Your write-up PDF (submit to gradescope write-up project)
 
 #### Code Handin ####
 
-We ask you to submit source files `part_a/tasksys.cpp|.h` and `part_b/tasksys.cpp|.h` in a compressed file. You can create a directory (e.g named `asst2_submission`) with sub-directories `part_a` and `part_b`, drop the relevant files in, compress the directory by running `tar -czvf asst2.tar.gz asst2_submission`, and upload it. Please submit the **compressed file** `asst2.tar.gz` to assignment *Assignment 2 (Code)* on Gradescope.
+We ask you to submit source files `part_a/tasksys.cpp|.h` and `part_b/tasksys.cpp|.h` in a compressed file. You can create a directory (e.g named `asst2_submission`) with sub-directories `part_a` and `part_b`, drop the relevant files in, compress the directory by running `tar -czvf asst2.tar.gz asst2_submission`, and upload it. Please submit the **compressed file** `asst2.tar.gz` to project *project 2 (Code)* on Gradescope.
 
 Before submitting the source files, make sure that all code is compilable and runnable! We should be able to drop these files into a clean starter code tree, type `make`, and then execute your program without manual intervention.
 
-Our grading scripts will run the checker code provided to you in the starter code to determine performance points.  _We will also run your code on other applications that are not provided in the starter code to further test its correctness!_ The grading script will be run *after* the assignment is due.
+Our grading scripts will run the checker code provided to you in the starter code to determine performance points.  _We will also run your code on other applications that are not provided in the starter code to further test its correctness!_ The grading script will be run *after* the project is due.
 
 #### Writeup Handin ####
 
-Please submit a brief writeup to the assignment *Assignment 2 (Write-up)* on Gradescope, addressing the following:
+Please submit a brief writeup to the project *project 2 (Write-up)* on Gradescope, addressing the following:
 
  1. Describe your task system implementation (1 page is fine).  In additional to a general description of how it works, please make sure you address the following questions:
   * How did you decide to manage threads? (e.g., did you implement a thread pool?)
-  * How does your system assign tasks to worker threads? Did you use static or dynamic assignment?
+  * How does your system assign tasks to worker threads? Did you use static or dynamic project?
   * How did you track dependencies in Part B to ensure correct execution of task graphs?
 
  2. In Part A, you may have noticed that simpler task system implementations (e.g., a completely serial implementation, or the spawn threads every launch implementation), perform as well as or sometimes better than the more advanced implementations.  Please explain why this is the case, citing certain tests as examples.  For example, in what situations did the sequential task system implementation perform best? Why?  In what situations did the spawn-every-launch implementation perform as well as the more advanced parallel implementations that use a thread pool?  When does it not?
- 3. Describe one test that you implemented for this assignment. What does the test do, what is it meant to check, and how did you verify that your solution to the assignment did well on your test? Did the result of the test you added cause you to change your assignment implementation?
+ 3. Describe one test that you implemented for this project. What does the test do, what is it meant to check, and how did you verify that your solution to the project did well on your test? Did the result of the test you added cause you to change your project implementation?
