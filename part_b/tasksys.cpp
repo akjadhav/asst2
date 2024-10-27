@@ -178,7 +178,7 @@ TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnabl
         for (int i = 0; i < num_total_tasks; ++i) {
             ready_queue.emplace(task_id, i);
         }
-        worker_cv.notify_all();
+        worker_cv.notify_one();  // Changed from notify_all() to notify_one()
     } else {
         // Add this task group to successors of its dependencies
         for (TaskID dep_id : deps) {
@@ -237,32 +237,35 @@ void TaskSystemParallelThreadPoolSleeping::workerThread(int i) {
             // Execute the task outside the lock
             runnable->runTask(task_index, num_total_tasks);
 
-            {
+            // Increment completed tasks
+            int completed_tasks = ++task_groups[task_id].completed_tasks;
+
+            // Increment total_tasks_completed
+            int total_completed = ++total_tasks_completed;
+
+            // Check if the task group is complete
+            if (completed_tasks == task_groups[task_id].num_total_tasks) {
+                // Lock mutex to process successors
                 std::unique_lock<std::mutex> lock(mutex);
                 TaskGroup& task_group = task_groups[task_id];
-                task_group.completed_tasks++;
-                total_tasks_completed++;
-
-                // Check if the task group is complete
-                if (task_group.completed_tasks == task_group.num_total_tasks) {
-                    // Notify successors
-                    for (TaskID succ_id : task_group.successors) {
-                        TaskGroup& succ_group = task_groups[succ_id];
-                        succ_group.predecessors--;
-                        if (succ_group.predecessors == 0) {
-                            // All dependencies resolved; add tasks to ready queue
-                            for (int i = 0; i < succ_group.num_total_tasks; ++i) {
-                                ready_queue.emplace(succ_id, i);
-                            }
-                            worker_cv.notify_all();
+                // Notify successors
+                for (TaskID succ_id : task_group.successors) {
+                    TaskGroup& succ_group = task_groups[succ_id];
+                    int preds = --succ_group.predecessors;
+                    if (preds == 0) {
+                        // All dependencies resolved; add tasks to ready_queue
+                        for (int i = 0; i < succ_group.num_total_tasks; ++i) {
+                            ready_queue.emplace(succ_id, i);
                         }
+                        worker_cv.notify_one();  // Changed from notify_all() to notify_one()
                     }
                 }
+            }
 
-                // Notify main thread if all tasks are completed
-                if (total_tasks_completed == total_tasks_submitted) {
-                    main_cv.notify_all();
-                }
+            // Notify main thread if all tasks are completed
+            if (total_completed == total_tasks_submitted) {
+                std::unique_lock<std::mutex> lock(mutex);
+                main_cv.notify_all();
             }
 
             // Try to get another task from the queue
@@ -278,3 +281,4 @@ void TaskSystemParallelThreadPoolSleeping::workerThread(int i) {
         }
     }
 }
+
