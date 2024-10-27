@@ -120,11 +120,9 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         std::atomic<int> total_tasks_submitted;
         std::atomic<int> total_tasks_completed;
 
-        // Thread management
         std::vector<std::thread> threads;
         bool finished;
 
-        // Synchronization primitives
         std::mutex mutex;
         std::condition_variable worker_cv;
         std::condition_variable main_cv;
