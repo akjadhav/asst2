@@ -11,7 +11,7 @@
 #include <condition_variable>
 #include <thread>
 #include <unordered_map>
-
+#include <memory>  // Added for std::shared_ptr
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -104,8 +104,9 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
     private:
         void workerThread(int i);
         void addToReadyQueue(TaskID id);
+
         struct TaskGroup {
-            IRunnable* runnable;
+            std::shared_ptr<IRunnable> runnable; 
             int num_total_tasks;
             int completed_tasks;
             std::vector<TaskID> dependencies;
