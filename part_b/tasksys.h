@@ -2,6 +2,16 @@
 #define _TASKSYS_H
 
 #include "itasksys.h"
+#include "itasksys.h"
+#include <mutex>
+#include <atomic>
+#include <queue>
+#include <set>
+#include <tuple>
+#include <condition_variable>
+#include <thread>
+#include <unordered_map>
+
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -34,6 +44,15 @@ class TaskSystemParallelSpawn: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+    
+    private:
+        void workerThread();
+        std::vector<std::thread> threads;
+        std::mutex mutex;
+        int _curr_task;
+        int _num_total_tasks;
+        int numThreads;
+        IRunnable* _runnable;
 };
 
 /*
@@ -51,6 +70,19 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+    
+    private:
+        void workerThread();
+        int num_threads;
+        std::vector<std::thread> threads;
+        bool finished;
+        std::mutex mutex;
+        std::mutex completed_mutex;
+        IRunnable* _runnable;
+        int _tasksCompleted;
+        int _tasksAssigned;
+        int _num_total_tasks;
+        int _currTask;
 };
 
 /*
@@ -68,6 +100,33 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+    
+    private:
+        void workerThread(int i);
+        void addToReadyQueue(TaskID id);
+        struct TaskGroup {
+            IRunnable* runnable;
+            int num_total_tasks;
+            int completed_tasks;
+            std::vector<TaskID> dependencies;
+            std::vector<TaskID> successors;
+            std::atomic<int> predecessors;
+        };
+
+        std::unordered_map<TaskID, TaskGroup> task_groups;
+        std::queue<std::tuple<TaskID, int>> ready_queue;
+        TaskID next_task_id;
+        std::atomic<int> total_tasks_submitted;
+        std::atomic<int> total_tasks_completed;
+
+        // Thread management
+        std::vector<std::thread> threads;
+        bool finished;
+
+        // Synchronization primitives
+        std::mutex mutex;
+        std::condition_variable worker_cv;
+        std::condition_variable main_cv;
 };
 
 #endif
